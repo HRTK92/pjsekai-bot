@@ -1,28 +1,28 @@
 from flask import Flask, request, abort
 
-from linebot import (
-    LineBotApi, WebhookHandler
-)
-from linebot.exceptions import (
-    InvalidSignatureError
-)
+from linebot import LineBotApi, WebhookHandler
+from linebot.exceptions import InvalidSignatureError
 from linebot.models import (
-    MessageEvent, TextMessage, TextSendMessage,
+    MessageEvent,
+    TextMessage,
+    TextSendMessage,
+    FlexSendMessage,
 )
-import os
+import os, json
 import requests
 from jinja2 import Environment, FileSystemLoader, Template, select_autoescape
 
 app = Flask(__name__)
 
-#ボットの読み込み
+# ボットの読み込み
 line_bot_api = LineBotApi(os.getenv("YOUR_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("YOUR_CHANNEL_SECRET"))
 
-@app.route("/callback", methods=['POST'])
+
+@app.route("/callback", methods=["POST"])
 def callback():
     # get X-Line-Signature header value
-    signature = request.headers['X-Line-Signature']
+    signature = request.headers["X-Line-Signature"]
 
     # get request body as text
     body = request.get_data(as_text=True)
@@ -34,51 +34,132 @@ def callback():
     except InvalidSignatureError:
         abort(400)
 
-    return 'OK'
+    return "OK"
 
-#メッセージがとどいた時
+
+# メッセージがとどいた時
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     message = event.message.text
-    if message.startswith('!'):
+    if message.startswith("!"):
         args = message[1:].split()
         command = args[0]
         if command == "楽曲":
-            response = requests.get('https://raw.githubusercontent.com/Sekai-World/sekai-master-db-diff/main/musics.json')
+            response = requests.get(
+                "https://raw.githubusercontent.com/Sekai-World/sekai-master-db-diff/main/musics.json"
+            )
             musics = response.json()
             if args[1] == "一覧":
                 text = ""
-                for musics in musics:
-                    text += f"{music['title']}|"
+                for music in musics:
+                    text += f"{music['title']}\n"
                 line_bot_api.reply_message(
-                    event.reply_token,
-                    TextSendMessage(
-                        text=text
-                    )
+                    event.reply_token, TextSendMessage(text=text)
                 )
             else:
                 for music in musics:
-                    if args[1] == music['title']:
+                    if music["title"] in args[1]:
                         template = Template(
-                            """"""
+                            """
+{
+  "type": "bubble",
+  "header": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "text",
+        "text": "楽曲情報: {{music.title}}",
+        "size": "lg"
+      }
+    ]
+  },
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "baseline",
+        "contents": [
+          {
+            "type": "text",
+            "contents": [
+              {
+                "type": "span",
+                "text": "作詞: {{music.lyricist}}"
+              },
+              {
+                "type": "span",
+                "text": "作曲: {{music.composer}}"
+              },
+              {
+                "type": "span",
+                "text": "編曲: {{music.arranger}}"
+              }
+            ],
+            "wrap": true
+          }
+        ]
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "カテゴリー: {{music.categories}}"
+          }
+        ]
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "公開日: {{publishedAt}}"
+          }
+        ]
+      },
+      {
+        "type": "button",
+        "action": {
+          "type": "message",
+          "label": "譜面を見る",
+          "text": "!譜面 {{music.title}}"
+        }
+      }
+    ]
+  }
+}
+                                            """
                         )
+                        ren_s = template.render(
+                            music=music, publishedAt=music["publishedAt"]
+                        )
+                        line_bot_api.reply_message(
+                            event.reply_token,
+                            FlexSendMessage(
+                                alt_text=f"楽曲情報: {music['title']}",
+                                contents=json.loads(ren_s),
+                            ),
+                        )
+
+        elif command == "譜面":
+            pass
         elif command == "カード":
-           response = requests.get('https://raw.githubusercontent.com/Sekai-World/sekai-master-db-diff/main/cards.json')
-           cards = response.json()
-           for card in cards:
-               if card == args[1]
-           reply_flex = FlexSendMessage(
-                   alt_text=f'カード情報: {}',
-                   contents={
-
-                   }
-           )
-           line_bot_api.reply_message(
-                event.reply_token,
-                TextSendMessage(text=event.message.text)
+            response = requests.get(
+                "https://raw.githubusercontent.com/Sekai-World/sekai-master-db-diff/main/cards.json"
             )
-          
-
+            cards = response.json()
+            for card in cards:
+                if card == args[1]:
+                    pass
+            reply_flex = FlexSendMessage(alt_text=f"カード情報: ", contents={})
+            line_bot_api.reply_message(
+                event.reply_token, TextSendMessage(text=event.message.text)
+            )
 
 
 if __name__ == "__main__":
