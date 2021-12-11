@@ -10,6 +10,8 @@ from linebot.models import (
     MessageEvent, TextMessage, TextSendMessage,
 )
 import os
+import requests
+from jinja2 import Environment, FileSystemLoader, Template, select_autoescape
 
 app = Flask(__name__)
 
@@ -39,7 +41,43 @@ def callback():
 def handle_message(event):
     message = event.message.text
     if message.startswith('!'):
-      pass
+        args = message[1:].split()
+        command = args[0]
+        if command == "楽曲":
+            response = requests.get('https://raw.githubusercontent.com/Sekai-World/sekai-master-db-diff/main/musics.json')
+            musics = response.json()
+            if args[1] == "一覧":
+                text = ""
+                for musics in musics:
+                    text += f"{music['title']}|"
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextSendMessage(
+                        text=text
+                    )
+                )
+            else:
+                for music in musics:
+                    if args[1] == music['title']:
+                        template = Template(
+                            """"""
+                        )
+        elif command == "カード":
+           response = requests.get('https://raw.githubusercontent.com/Sekai-World/sekai-master-db-diff/main/cards.json')
+           cards = response.json()
+           for card in cards:
+               if card == args[1]
+           reply_flex = FlexSendMessage(
+                   alt_text=f'カード情報: {}',
+                   contents={
+
+                   }
+           )
+           line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text=event.message.text)
+            )
+          
 
 
 
