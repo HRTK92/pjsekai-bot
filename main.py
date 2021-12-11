@@ -7,6 +7,9 @@ from linebot.models import (
     TextMessage,
     TextSendMessage,
     FlexSendMessage,
+    QuickReplyButton,
+    MessageAction,
+    QuickReply,
 )
 import os, json
 import requests
@@ -147,7 +150,35 @@ def handle_message(event):
                         )
 
         elif command == "譜面":
-            pass
+            response = requests.get(
+                "https://raw.githubusercontent.com/Sekai-World/sekai-master-db-diff/main/musics.json"
+            )
+            musics = response.json()
+            for music in musics:
+                if music["title"] == args[1]:
+                    if len(args) == 2:
+                        items = [
+                            QuickReplyButton(
+                                action=MessageAction(
+                                    label=f"{action}の譜面",
+                                    text=f"!譜面 {music['title']} {action}",
+                                )
+                            )
+                            for action in ["easy", "normal", "hard", "expert", "master"]
+                        ]
+                        line_bot_api.reply_message(
+                            event.reply_token,
+                            TextSendMessage(
+                                text=f"以下から見たい譜面を選んでください", quick_reply=QuickReply(items=items)
+                            ),
+                        )
+                        return
+                    music_id = str(music["id"]).zfill(4)
+                    difficulty = args[2]
+                    svg_url = f"https://minio.dnaroma.eu/sekai-assets/music/charts/{music_id}/{difficulty}.svg"
+                    line_bot_api.reply_message(
+                    event.reply_token, TextSendMessage(text=svg_url)
+                    )
         elif command == "カード":
             response = requests.get(
                 "https://raw.githubusercontent.com/Sekai-World/sekai-master-db-diff/main/cards.json"
