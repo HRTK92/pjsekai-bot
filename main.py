@@ -11,7 +11,7 @@ from linebot.models import (
     MessageAction,
     QuickReply,
 )
-import os, json
+import os, json, re
 import requests
 from jinja2 import Environment, FileSystemLoader, Template, select_autoescape
 
@@ -20,6 +20,11 @@ app = Flask(__name__)
 # ボットの読み込み
 line_bot_api = LineBotApi(os.getenv("YOUR_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("YOUR_CHANNEL_SECRET"))
+
+
+@app.route("/keep", methods=["POST"])
+def keep():
+    return "OK"
 
 
 @app.route("/callback", methods=["POST"])
@@ -154,9 +159,22 @@ def handle_message(event):
                 "https://raw.githubusercontent.com/Sekai-World/sekai-master-db-diff/main/musics.json"
             )
             musics = response.json()
-            for music in musics:
-                if music["title"] == args[1]:
-                    if len(args) == 2:
+            if re.fullmatch(r"^!譜面 .+ (easy|normal|hard|expert|master)", message):
+                difficulty = re.search(
+                    r"(easy|normal|hard|expert|master)", message
+                ).groups()[0]
+                music_title = re.search(rf"!譜面 (.+) {difficulty}", message).groups()[0]
+                for music in musics:
+                    if music["title"] == music_title:
+                        music_id = str(music["id"]).zfill(4)
+                        svg_url = f"https://minio.dnaroma.eu/sekai-assets/music/charts/{music_id}/{difficulty}.svg"
+                        line_bot_api.reply_message(
+                            event.reply_token, TextSendMessage(text=svg_url)
+                        )
+            else:
+                music_title = re.search(r"!譜面 (.+)", message).groups()[0]
+                for music in musics:
+                    if music["title"] in music_title:
                         items = [
                             QuickReplyButton(
                                 action=MessageAction(
@@ -169,16 +187,10 @@ def handle_message(event):
                         line_bot_api.reply_message(
                             event.reply_token,
                             TextSendMessage(
-                                text=f"以下から見たい譜面を選んでください", quick_reply=QuickReply(items=items)
+                                text=f"以下から見たい譜面を選んでください",
+                                quick_reply=QuickReply(items=items),
                             ),
                         )
-                        return
-                    music_id = str(music["id"]).zfill(4)
-                    difficulty = args[2]
-                    svg_url = f"https://minio.dnaroma.eu/sekai-assets/music/charts/{music_id}/{difficulty}.svg"
-                    line_bot_api.reply_message(
-                    event.reply_token, TextSendMessage(text=svg_url)
-                    )
         elif command == "カード":
             response = requests.get(
                 "https://raw.githubusercontent.com/Sekai-World/sekai-master-db-diff/main/cards.json"
