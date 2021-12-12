@@ -319,18 +319,6 @@ def handle_message(event):
                     contents=json.loads(ren_s),
                 ),
             )
-        elif command == "カード":
-            response = requests.get(
-                "https://raw.githubusercontent.com/Sekai-World/sekai-master-db-diff/main/cards.json"
-            )
-            cards = response.json()
-            for card in cards:
-                if card == args[1]:
-                    pass
-            reply_flex = FlexSendMessage(alt_text=f"カード情報: ", contents={})
-            line_bot_api.reply_message(
-                event.reply_token, TextSendMessage(text=event.message.text)
-            )
 
 
 if __name__ == "__main__":
