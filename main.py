@@ -11,8 +11,9 @@ from linebot.models import (
     MessageAction,
     QuickReply,
 )
-import os, json, re
+import os, json, re, datetime, time
 import requests
+from pytz import timezone
 from jinja2 import Environment, FileSystemLoader, Template, select_autoescape
 
 app = Flask(__name__)
@@ -79,6 +80,11 @@ def handle_message(event):
         "type": "text",
         "text": "楽曲情報: {{music.title}}",
         "size": "lg"
+      },
+      {
+        "type": "image",
+        "url": "https://minio.dnaroma.eu/sekai-assets/music/jacket/{{music.assetbundleName}}_rip/{{music.assetbundleName}}.png",
+        "size": "xl"
       }
     ]
   },
@@ -144,7 +150,9 @@ def handle_message(event):
                                             """
                         )
                         ren_s = template.render(
-                            music=music, publishedAt=music["publishedAt"]
+                            music=music,
+                            publishedAt=music["publishedAt"],
+                            music_id=str(music["id"]).zfill(3),
                         )
                         line_bot_api.reply_message(
                             event.reply_token,
@@ -168,8 +176,55 @@ def handle_message(event):
                     if music["title"] == music_title:
                         music_id = str(music["id"]).zfill(4)
                         svg_url = f"https://minio.dnaroma.eu/sekai-assets/music/charts/{music_id}/{difficulty}.svg"
+                        template = Template(
+                            """
+{
+  "type": "bubble",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "image",
+            "url": "https://minio.dnaroma.eu/sekai-assets/music/jacket/{{music.assetbundleName}}_rip/{{music.assetbundleName}}.png",
+            "align": "start",
+            "size": "xs"
+          },
+          {
+            "type": "text",
+            "text": "{{music.title}}",
+            "align": "start",
+            "gravity": "center",
+            "size": "lg"
+          }
+        ]
+      },
+      {
+        "type": "button",
+        "action": {
+          "type": "uri",
+          "label": "{{difficulty}}の譜面を見る",
+          "uri": "{{svg_url}}"
+        }
+      }
+    ]
+  }
+}
+"""
+                        )
+                        ren_s = template.render(
+                            difficulty=difficulty, svg_url=svg_url, music=music
+                        )
                         line_bot_api.reply_message(
-                            event.reply_token, TextSendMessage(text=svg_url)
+                            event.reply_token,
+                            FlexSendMessage(
+                                alt_text=f"{music['title']} {difficulty}の譜面",
+                                contents=json.loads(ren_s),
+                            ),
                         )
             else:
                 music_title = re.search(r"!譜面 (.+)", message).groups()[0]
@@ -191,6 +246,79 @@ def handle_message(event):
                                 quick_reply=QuickReply(items=items),
                             ),
                         )
+        elif command == "イベント":
+            response = requests.get(
+                "https://raw.githubusercontent.com/Sekai-World/sekai-master-db-diff/main/events.json"
+            )
+            events = response.json()
+            last_event = events[-1]
+            template = Template(
+                """
+{
+  "type": "bubble",
+  "header": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "text",
+        "text": "{{event.name}}",
+        "size": "lg",
+        "align": "center"
+      },
+      {
+        "type": "image",
+        "url": "https://minio.dnaroma.eu/sekai-assets/event/{{event.assetbundleName}}/logo_rip/logo.png",
+        "size": "xl"
+      }
+    ]
+  },
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "開始時間: {{utcfromtimestamp(event.startAt / 1000)}}",
+            "contents": [],
+            "align": "center"
+          },
+          {
+            "type": "text",
+            "text": "終了時間: {{utcfromtimestamp(event.closedAt / 1000)}}",
+            "align": "center"
+          },
+          {
+            "type": "text",
+            "text": "終了まで{{countdown}}",
+            "align": "center"
+          }
+        ]
+      }
+    ]
+  }
+}
+                                """
+            )
+            countdown = datetime.datetime.utcfromtimestamp(
+                last_event["closedAt"] / 1000
+            ) - datetime.datetime.now()
+            ren_s = template.render(
+                event=last_event,
+                utcfromtimestamp=datetime.datetime.utcfromtimestamp,
+                countdown=countdown,
+            )
+            line_bot_api.reply_message(
+                event.reply_token,
+                FlexSendMessage(
+                    alt_text=f"{last_event['name']}",
+                    contents=json.loads(ren_s),
+                ),
+            )
         elif command == "カード":
             response = requests.get(
                 "https://raw.githubusercontent.com/Sekai-World/sekai-master-db-diff/main/cards.json"
