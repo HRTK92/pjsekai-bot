@@ -1,20 +1,24 @@
-from flask import Flask, request, abort
+import datetime
+import json
+import os
+import re
+import time
 
+import requests
+from flask import Flask, abort, request
+from jinja2 import Environment, FileSystemLoader, Template, select_autoescape
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import (
+    FlexSendMessage,
+    MessageAction,
     MessageEvent,
+    QuickReply,
+    QuickReplyButton,
     TextMessage,
     TextSendMessage,
-    FlexSendMessage,
-    QuickReplyButton,
-    MessageAction,
-    QuickReply,
 )
-import os, json, re, datetime, time
-import requests
 from pytz import timezone
-from jinja2 import Environment, FileSystemLoader, Template, select_autoescape
 
 app = Flask(__name__)
 
@@ -304,9 +308,10 @@ def handle_message(event):
 }
                                 """
             )
-            countdown = datetime.datetime.utcfromtimestamp(
-                last_event["closedAt"] / 1000
-            ) - datetime.datetime.now()
+            countdown = (
+                datetime.datetime.utcfromtimestamp(last_event["closedAt"] / 1000)
+                - datetime.datetime.now()
+            )
             ren_s = template.render(
                 event=last_event,
                 utcfromtimestamp=datetime.datetime.utcfromtimestamp,
