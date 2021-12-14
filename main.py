@@ -180,6 +180,9 @@ def handle_message(event):
                 for music in musics:
                     if music["title"] == music_title:
                         music_id = str(music["id"]).zfill(4)
+                        for musicDifficulty in musicDifficulties:
+                            if musicDifficulty["musicId"] == music["id"] and musicDifficulty["musicDifficulty"] == difficulty:
+                                level = musicDifficulty["playLevel"]                       
                         svg_url = f"https://minio.dnaroma.eu/sekai-assets/music/charts/{music_id}/{difficulty}.svg"
                         template = Template(
                             """
@@ -205,6 +208,10 @@ def handle_message(event):
             "align": "start",
             "gravity": "center",
             "size": "lg"
+          },
+          {
+            "type": "text",
+            "text": "Level: {{level}}"
           }
         ]
       },
@@ -222,7 +229,7 @@ def handle_message(event):
 """
                         )
                         ren_s = template.render(
-                            difficulty=difficulty, svg_url=svg_url, music=music
+                            difficulty=difficulty, svg_url=svg_url, music=music, level=level
                         )
                         line_bot_api.reply_message(
                             event.reply_token,
