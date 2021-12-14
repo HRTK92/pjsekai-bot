@@ -325,13 +325,13 @@ def handle_message(event):
                 ),
             )
         elif command == "攻略情報":
-          response = requests.get(f'https://appmedia.jp/pjsekai/?s={args[1]}')
-          line_bot_api.reply_message(
-                                        event.reply_token,
-                                                                    TextSendMessage(
-                                                                                                    text=f"https://appmedia.jp/pjsekai/?s={args[1]}",
-                                                                                                                                                                ),
-                                                                                                                                                                                        )
+            response = requests.get(f"https://appmedia.jp/pjsekai/?s={args[1]}")
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(
+                    text=f"https://appmedia.jp/pjsekai/?s={args[1]}",
+                ),
+            )
 
 
 if __name__ == "__main__":
