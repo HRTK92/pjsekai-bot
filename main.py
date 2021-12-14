@@ -238,7 +238,7 @@ def handle_message(event):
                         difficulties = filter(lambda x: x["musicId"] == music["musicId"], musicDifficulties)
                         levels = []
                         for level in levels:
-                          leaves.append(leave)
+                          levels.append(level)
                         items = [
                             QuickReplyButton(
                                 action=MessageAction(
