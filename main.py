@@ -235,14 +235,14 @@ def handle_message(event):
                 music_title = re.search(r"!譜面 (.+)", message).groups()[0]
                 for music in musics:
                     if music["title"] in music_title:
-                        difficulties = filter(lambda x: x["musicId"] == music["musicId"], musicDifficulties)
+                        difficulties = filter(lambda x: x["musicId"] == music["id"], musicDifficulties)
                         levels = []
-                        for level in levels:
-                          levels.append(level)
+                        for difficulty in difficulties:
+                          levels.append(difficulty["playLevel"])
                         items = [
                             QuickReplyButton(
                                 action=MessageAction(
-                                    label=f"{action}の譜面({level})",
+                                    label=f"{action}の譜面 Lv.{level}",
                                     text=f"!譜面 {music['title']} {action}",
                                 )
                             )
