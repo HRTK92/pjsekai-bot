@@ -171,7 +171,9 @@ def handle_message(event):
                 "https://raw.githubusercontent.com/Sekai-World/sekai-master-db-diff/main/musics.json"
             )
             musics = response.json()
-            musicDifficulties = requests.get('https://raw.githubusercontent.com/Sekai-World/sekai-master-db-diff/main/musicDifficulties.json').json()
+            musicDifficulties = requests.get(
+                "https://raw.githubusercontent.com/Sekai-World/sekai-master-db-diff/main/musicDifficulties.json"
+            ).json()
             if re.fullmatch(r"^!譜面 .+ (easy|normal|hard|expert|master)", message):
                 difficulty = re.search(
                     r"(easy|normal|hard|expert|master)", message
@@ -181,8 +183,11 @@ def handle_message(event):
                     if music["title"] == music_title:
                         music_id = str(music["id"]).zfill(4)
                         for musicDifficulty in musicDifficulties:
-                            if musicDifficulty["musicId"] == music["id"] and musicDifficulty["musicDifficulty"] == difficulty:
-                                level = musicDifficulty["playLevel"]                       
+                            if (
+                                musicDifficulty["musicId"] == music["id"]
+                                and musicDifficulty["musicDifficulty"] == difficulty
+                            ):
+                                level = musicDifficulty["playLevel"]
                         svg_url = f"https://minio.dnaroma.eu/sekai-assets/music/charts/{music_id}/{difficulty}.svg"
                         template = Template(
                             """
@@ -229,7 +234,10 @@ def handle_message(event):
 """
                         )
                         ren_s = template.render(
-                            difficulty=difficulty, svg_url=svg_url, music=music, level=level
+                            difficulty=difficulty,
+                            svg_url=svg_url,
+                            music=music,
+                            level=level,
                         )
                         line_bot_api.reply_message(
                             event.reply_token,
@@ -242,10 +250,12 @@ def handle_message(event):
                 music_title = re.search(r"!譜面 (.+)", message).groups()[0]
                 for music in musics:
                     if music["title"] in music_title:
-                        difficulties = filter(lambda x: x["musicId"] == music["id"], musicDifficulties)
+                        difficulties = filter(
+                            lambda x: x["musicId"] == music["id"], musicDifficulties
+                        )
                         levels = []
                         for difficulty in difficulties:
-                          levels.append(difficulty["playLevel"])
+                            levels.append(difficulty["playLevel"])
                         items = [
                             QuickReplyButton(
                                 action=MessageAction(
@@ -253,7 +263,9 @@ def handle_message(event):
                                     text=f"!譜面 {music['title']} {action}",
                                 )
                             )
-                            for (action, level) in zip(["easy", "normal", "hard", "expert", "master"], levels)
+                            for (action, level) in zip(
+                                ["easy", "normal", "hard", "expert", "master"], levels
+                            )
                         ]
                         line_bot_api.reply_message(
                             event.reply_token,
