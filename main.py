@@ -54,7 +54,7 @@ def callback():
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     message = event.message.text
-    if message.startswith("!"):
+    if message.startswith("!") or message.startswith("！"):
         args = message[1:].split()
         command = args[0]
         if command == "楽曲":
